@@ -1,0 +1,67 @@
+{{- if .Values.apiGatewayRoute.routes }}
+{{- $scheme := include "eric-simple-ml-demo.serviceScheme" . }}
+{{- $port := include "eric-simple-ml-demo.servicePort" . }}
+{{- $serviceName := include "eric-simple-ml-demo.name" . }}
+{{- range .Values.apiGatewayRoute.routes }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "eric-simple-ml-demo.name" $ }}-{{ .id }}-route-configmap
+data:
+  route.json: |
+    {
+        "id": "{{ include "eric-simple-ml-demo.name" $ }}-{{ .id }}",
+        "predicates": [
+            {
+                "name": "Path",
+                "args": {
+                    "_genkey_0": {{ .path | quote }}
+                }
+            },
+            {
+                "name": "Host",
+                "args": {
+                    {{- range $index, $host := .hosts }}
+                    {{- if ne $index 0 }},{{ end }}
+                    {{ printf "_genkey_%d" $index | quote }}: {{ $host | quote -}}
+                    {{- end }}
+                }
+            }
+        ],
+        "filters": [
+        {
+            "name": "AddRequestHeader",
+            "args": {
+                "_genkey_0": "X-RateLimit-Map-Name",
+                "_genkey_1": "so-rate-limiter"
+            }
+        },
+        {
+            "name": "AddRequestHeader",
+            "args": {
+                "_genkey_0": "X-RateLimit-Max-Access",
+                "_genkey_1": "410"
+            }
+        },
+        {
+            "name": "AddRequestHeader",
+            "args": {
+                "_genkey_0": "X-RateLimit-Reset-Time",
+                "_genkey_1": "15"
+            }
+        },
+        {
+            "name": "RateLimitFilter",
+            "args": {}
+        },
+        {
+            "name": "AddUserNameCookieFilter",
+            "args": {}
+        }
+    ],
+        "uri": "{{$scheme}}://{{$serviceName}}:{{$port}}",
+        "order": 0
+    }
+{{- end }}
+{{- end }}

@@ -1,0 +1,148 @@
+{{- $tlsenabled := .Values.global.security.tls.enabled }}
+{
+    {{- range  $index, $service := .Values.onboardingAPIs}}
+
+    {{$service.serviceCapabilityId |  quote}}: [
+        {
+
+            "apiVersion": "v3",
+            "kind": "API",
+            "data": {
+                "serviceCapabilityId": {{ $service.serviceCapabilityId | quote }},
+                "status": {{ $service.status | quote }},
+                "apiName": {{ $service.apiName | quote }},
+                "apiVersion": {{ $service.apiVersion | quote }},
+                "apiCategory": {{ $service.apiCategory | quote }},
+                "apiDefinition": [
+               {{- range $apicount, $serviceApiDefinition := $service.apiDefinition}}
+                    {
+                        "operationName": "#/paths/{{$serviceApiDefinition.operationName}}",
+                        "urlPattern": {{ $serviceApiDefinition.urlPattern | quote }},
+                        "urlPatternType": {{ $serviceApiDefinition.urlPatternType | quote }}
+                        {{- if $serviceApiDefinition.method }},
+                        "methods": [{{ $serviceApiDefinition.method | quote }}]
+                        {{- end }}
+                    }
+               {{- if ne $apicount (sub (len $service.apiDefinition) 1 ) }}
+               ,{{- end }}
+               {{- end }}
+                ],
+                "accessControl": {
+                    "authentication": {
+                        "scheme": {{ $service.accessControl.authentication.scheme | quote }}
+                    }
+                },
+                "serviceLevelAgreement": {
+                    "throttlingRate": {
+                        "threshold": {{ $service.throttlingThreshold }}
+                    }
+                }
+            }
+        },
+        {{- range $serviceendpoint := $service.endpoints}}
+        {
+            "apiVersion": "v3",
+            "kind": "Endpoint",
+            "data": {
+                "endpointId": {{ $serviceendpoint.endpointId| quote }},
+                {{- if $tlsenabled }}
+                "serverUrl": "http://{{ $serviceendpoint.endpointTlsUrl }}",
+                {{- else }}
+                "serverUrl": "http://{{ $serviceendpoint.endpointUrl }}",
+                {{- end }}
+                "connection": {
+                    "httpProtocol": "HTTP1.1",
+                    "enableH2CPriorKnowledge": false
+                }
+            }
+        },
+      {{- end}}
+        {
+            "apiVersion": "v3",
+            "kind": "BindingPlugin",
+            "metadata": {
+                "phaseName": "auth"
+            },
+            "data": [
+                {{- range $intcount, $interceptor := $service.interceptor}}
+                {
+                    "name": {{ $interceptor | quote}}
+                }
+              {{- if ne $intcount (sub (len $service.interceptor) 1 ) }}
+           ,{{- end}}
+           {{- end }}
+            ]
+        },
+      {{- $foundExtra := false }}
+      {{- $foundRequest := false }}
+      {{- range $intcount, $interceptor := $service.interceptor }}
+      {{- if eq $interceptor "extractTokenInterceptor" }}
+        {
+            "apiVersion": "v3",
+            "kind": "PluginConfiguration",
+            "metadata": {
+                "pluginName": "extractTokenInterceptor"
+            },
+            "data": {
+                "configuration": {
+                    {{- range $interceptor := $service.interceptor }}
+                    {{- if eq $interceptor "extractTokenInterceptor" }}
+                      {{- $foundExtra = true }}
+                    {{- end }}
+                    {{- if eq $interceptor "requestPartyTokenInterceptor" }}
+                      {{- $foundRequest = true }}
+                    {{- end }}
+                    {{- end }}
+                    {{- if and $foundExtra $foundRequest }}
+                    "tokenHeaderName": "Authorization",
+                    {{- end }}
+                    "enableTokenPropagation": {{ $service.data.configuration.enableTokenPropagation}},
+                    "tokenCookieFieldNames": ["eric.adp.authz.proxy.token"]
+                }
+            }
+        }
+        {{- if ne $intcount (sub (len $service.interceptor) 1 ) }}
+        ,{{- end }}
+       {{- end }}
+      {{- if eq $interceptor "requestPartyTokenInterceptor" }}
+        {
+            "apiVersion": "v3",
+            "kind": "PluginConfiguration",
+            "metadata": {
+                "pluginName": "requestPartyTokenInterceptor"
+            },
+            "data": {
+                "configuration": {
+                    "defaultResourceServer": {{ $service.data.configuration.defaultResourceServer | quote }}
+                }
+            }
+        }
+       {{- if ne $intcount (sub (len $service.interceptor) 1 ) }}
+        ,{{- end }}
+        {{- end }}
+
+       {{- end }}
+    {{- $foundspec := false }}
+    {{- if $service.ApiSpecification }}
+      {{- $foundspec = true }}
+         {{- end }}
+       {{- if $foundspec }}
+        ,
+        {
+            "apiVersion": "v1",
+            "kind": "ApiSpecification",
+            "metadata": {
+                "categories": {{ $service.ApiSpecification.categories | quote }},
+                "docName": {{ $service.ApiSpecification.docName | quote }}
+            },
+            "data": {
+                "_fileContent": {{ $service.ApiSpecification.fileContent | quote }},
+                "apiVersion": {{ $service.ApiSpecification.apiVersion | quote }}
+            }
+        }
+    {{- end }}
+    ]
+    {{- if ne $index (sub (len $.Values.onboardingAPIs) 1 ) }}
+    ,{{- end }}
+{{- end }}
+}

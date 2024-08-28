@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eric-simple-ml-demo.name" . }}
+  labels:
+    {{- include "eric-simple-ml-demo.labels" . | indent 4 }}
+  annotations:
+    {{- include "eric-simple-ml-demo.product-info" . | indent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "eric-simple-ml-demo.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  strategy:
+    type: {{ .Values.updateStrategy.type }}
+    {{- if and (eq .Values.updateStrategy.type "RollingUpdate") .Values.updateStrategy.rollingUpdate }}
+    rollingUpdate:
+      {{- if .Values.updateStrategy.rollingUpdate.maxUnavailable }}
+      maxUnavailable: {{ .Values.updateStrategy.rollingUpdate.maxUnavailable }}
+      {{- end }}
+      {{- if .Values.updateStrategy.rollingUpdate.maxSurge }}
+      maxSurge: {{ .Values.updateStrategy.rollingUpdate.maxSurge }}
+      {{- end }}
+    {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "eric-simple-ml-demo.labels" . | indent 8 }}
+      annotations:
+        {{- include "eric-simple-ml-demo.product-info" . | indent 8 }}
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+      serviceAccountName: {{ include "eric-simple-ml-demo.name" . }}-sa
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "eric-simple-ml-demo.name" . }}-config
+            items:
+              - key: LOG_CTRL_FILE
+                path: logcontrol.json
+        - name: temp-dir
+          emptyDir: {}
+      containers:
+        - name: eric-simple-ml-demo
+          image: {{ template "eric-simple-ml-demo.imagePath" (dict "imageId" "simple-ml-demo" "values" .Values "files" .Files) }}
+          imagePullPolicy: {{ .Values.imageCredentials.pullPolicy | default .Values.global.registry.imagePullPolicy | quote }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+              - all
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/adp
+            - name: temp-dir
+              mountPath: /tmp
+          env:
+            - name: TZ
+              value: {{ template "eric-simple-ml-demo.timezone" . }}
+            - name: LOG_CTRL_FILE
+              value: "/etc/adp/logcontrol.json"
+            - name: MXE_MODEL_SERVICE_URI
+              value: {{ .Values.mxe.modelServiceUri  | quote }}
+            - name: MXE_ACCESS_TOKEN_URI
+              value: {{ .Values.mxe.accessTokenUri  | quote }}
+            - name: MXE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eric-simple-ml-demo.mxeSecret" . }}
+                  key: {{ .Values.mxe.credentials.userKey }}
+            - name: MXE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eric-simple-ml-demo.mxeSecret" . }}
+                  key: {{ .Values.mxe.credentials.pwdKey }}
+            - name: MXE_CLIENT_ID
+              value: {{ .Values.global.iam.clientId }}
+            - name: MXE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.iam.clientSecretName }}
+                  key: "clientSecret"
+          ports:
+            - name: http
+              containerPort: 8050
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources.simpleMlApp | nindent 12 }}
+      {{- if include "eric-simple-ml-demo.pullSecrets" . }}
+      imagePullSecrets:
+        - name: {{ template "eric-simple-ml-demo.pullSecrets" . }}
+      {{- end }}

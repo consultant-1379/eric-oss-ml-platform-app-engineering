@@ -1,0 +1,15 @@
+{{ .Chart.Name }} has been installed.
+
+Your release is named {{ .Release.Name }}.
+
+Application URL(s):
+
+{{- with .Values.apiGatewayRoute }}
+{{- range .routes }}
+  {{- $qurl := urlParse .url }}
+  {{- $path := trimPrefix "/" .path }}
+  {{- range .hosts }}
+    {{ urlJoin (dict "scheme" $qurl.scheme "host" (trimSuffix "/" .) "path" $path) }}
+  {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,36 @@
+apiVersion: machinelearning.seldon.io/v1
+kind: SeldonDeployment
+metadata:
+  labels:
+    app: seldon
+  name: ml-test-service
+spec:
+  annotations:
+    seldon.io/istio-gateway: mesh
+    seldon.io/istio-host: ml-test-service
+  predictors:
+    - name: main
+      annotations:
+        predictor_version: v1
+        seldon.io/svc-name: ml-test-service
+      replicas: 1
+      graph:
+        name: model
+        type: MODEL
+        endpoint:
+          type: REST
+      componentSpecs:
+        - spec:
+            containers:
+              - image: ml.test.model:3.3.0
+                name: model
+                imagePullPolicy: Always
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  privileged: false
+                  runAsNonRoot: true
+                  capabilities:
+                    drop:
+                      - all
+      labels:
+        sidecar.istio.io/inject: "true"

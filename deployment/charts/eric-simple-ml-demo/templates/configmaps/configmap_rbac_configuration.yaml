@@ -1,0 +1,69 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "eric-simple-ml-demo.name" . }}-rbac-configuration
+  labels:
+    app: {{ .Chart.Name }}
+data:
+  rbac-configuration.json: |
+    {
+        "roles": [
+            {
+                "name": "MLDemoAdmin",
+                "attributes": {
+                    "type": [
+                        "internal"
+                    ]
+                }
+            }
+        ],
+        "authorization": {
+            "resources": [{
+                    "name": "ML Demo Service Templates",
+                    "type": "urn:eo:ml-demo:resources:services",
+                    "ownerManagedAccess": false,
+                    "attributes": {},
+                    "uris": [
+                        "/simplemldemo",
+                        "/simplemldemo/v1/simplemldemo*",
+                        "/model-endpoints/ml-test-service",
+                        "/seldon/{{- .Release.Namespace -}}/ml-test-service/**",
+                        "/ml-test-service/v1/seldon/{{- .Release.Namespace -}}/ml-test-service/**"
+                    ],
+                    "scopes": [
+                        {
+                            "name": "GET"
+                        }, {
+                            "name": "POST"
+                        }
+                    ]
+                }
+            ],
+            "policies": [{
+                    "name": "Is ML Demo Admin",
+                    "type": "role",
+                    "logic": "POSITIVE",
+                    "decisionStrategy": "UNANIMOUS",
+                    "config": {
+                        "roles": "[{\"id\":\"MLDemoAdmin\",\"required\":false}]"
+                    }
+                }, {
+                    "name": "Admin Service Template",
+                    "type": "scope",
+                    "logic": "POSITIVE",
+                    "decisionStrategy": "AFFIRMATIVE",
+                    "config": {
+                        "resources": "[\"ML Demo Service Templates\"]",
+                        "scopes": "[\"POST\",\"GET\"]",
+                        "applyPolicies": "[\"Is ML Demo Admin\"]"
+                    }
+                }
+            ],
+            "scopes": [{
+                    "name": "GET"
+                }, {
+                    "name": "POST"
+                }
+            ]
+        }
+    }

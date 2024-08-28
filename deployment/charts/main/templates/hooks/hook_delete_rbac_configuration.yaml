@@ -1,0 +1,102 @@
+{{- $global := fromJson (include "eric-oss-ml-platform-app-test.global" .) -}}
+{{- $iamClientCredentialGrantAuthNEnabled := include "eric-oss-ml-platform-app-test.iam-client-credential-authn-enabled" . | trim -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "eric-oss-ml-platform-app-test.name" . }}-delete-rbac-configuration-hook
+  labels:
+    {{- include "eric-oss-ml-platform-app-test.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": "pre-delete, pre-rollback, pre-upgrade"
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation"
+spec:
+  template:
+    metadata:
+      labels:
+        app: {{ include "eric-oss-ml-platform-app-test.name" . }}
+        {{- if (eq $iamClientCredentialGrantAuthNEnabled "true") }}
+        eric-sec-access-mgmt-access: "true"
+        {{- end }}
+    spec:
+      serviceAccountName: {{ template "eric-oss-ml-platform-app-test.serviceaccount" . }}
+      {{- if include "eric-oss-ml-platform-app-test.pullSecrets" . }}
+      imagePullSecrets:
+        - name: {{ template "eric-oss-ml-platform-app-test.pullSecrets" . }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- include "eric-oss-ml-platform-app-test.nodeSelector" . | nindent 6 }}
+      restartPolicy: Never
+      containers:
+        - name: keycloak-client
+          image: {{ template "eric-oss-ml-platform-app-test.imagePath" (merge (dict "ImageKey" "keycloakClient") .) }}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - all
+          env:
+        {{- if (eq $iamClientCredentialGrantAuthNEnabled "true") }}
+          - name: IAM_CLIENT_CREDENTIAL_GRANT_AUTHN_ENABLED
+            value: "true"
+        {{- else }}
+          - name: IAM_ADMIN_USER
+            valueFrom:
+              secretKeyRef:
+                name: {{ $global.iam.adminSecret | quote }}
+                key: {{ $global.iam.userKey | quote }}
+          - name: IAM_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ $global.iam.adminSecret | quote }}
+                key: {{ $global.iam.passwordKey | quote }}
+        {{- end }}
+          args:
+            - "delete"
+            - "authz"
+            {{- if (eq $iamClientCredentialGrantAuthNEnabled "true") }}
+            - "--keycloak_internal_hostname={{ $global.iam.internal.hostname }}"
+            - "--keycloak_admin_client_name={{ $global.iam.internal.adminClientName }}"
+            - "--ca_cert_path=/run/secrets/{{ $global.security.tls.trustedInternalRootCa.secret }}/ca.crt"
+            - "--client_cert_path=/run/secrets/{{ $global.iam.internal.adminClientCertSecret }}/tls.crt"
+            - "--client_key_path=/run/secrets/{{ $global.iam.internal.adminClientCertSecret }}/tls.key"
+            {{- else }}
+            - "--keycloak_hostname={{ $global.hosts.iam }}"
+            - "--keycloak_user=$(IAM_ADMIN_USER)"
+            - "--keycloak_password=$(IAM_ADMIN_PASSWORD)"
+            {{- end }}
+            - "--client_name={{ $global.iam.clientId }}"
+            - "--provider={{ include "eric-oss-ml-platform-app-test.name" . }}"
+          volumeMounts:
+            {{- if (eq $iamClientCredentialGrantAuthNEnabled "true") }}
+            - name: siptls-rootcacert-volume
+              mountPath: /run/secrets/{{ $global.security.tls.trustedInternalRootCa.secret }}
+            - name: client-cert-volume
+              mountPath: /run/secrets/{{ $global.iam.internal.adminClientCertSecret }}
+            {{- else }}
+            - name: create-cacert-volume
+              mountPath: /mnt/certs
+            {{- end }}
+      volumes:
+        {{- if (eq $iamClientCredentialGrantAuthNEnabled "true") }}
+        - name: siptls-rootcacert-volume
+          secret:
+            secretName: {{ $global.security.tls.trustedInternalRootCa.secret | quote }}
+        - name: client-cert-volume
+          secret:
+            secretName: {{ $global.iam.internal.adminClientCertSecret | quote }}
+        {{- else }}
+        - name: create-cacert-volume
+          secret:
+            secretName: {{ $global.iam.cacert.secretName | quote }}
+            items:
+              - key: {{ $global.iam.cacert.key | quote }}
+                path: {{ $global.iam.cacert.filePath | quote }}
+        {{- end }}

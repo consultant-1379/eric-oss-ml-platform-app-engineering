@@ -1,0 +1,5 @@
+Title: Idun ML Execution Env Python test model
+Id: com.ericsson.oss.ml.simpledemotest
+Version: 1.0.0
+Author: Smoke
+Description: Based on Python reference model for MXE with custom metrics.

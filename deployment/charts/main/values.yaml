@@ -1,0 +1,186 @@
+global:
+  security:
+    tls:
+      enabled: true
+  serviceMesh:
+    enabled: true
+  hosts:
+    eic: eic.dummy.ericsson.com
+    gas: gas.dummy.ericsson.com
+    iam: iam.dummy.ericsson.com
+  iam:
+    clientId: eo
+    adminSecret: eric-sec-access-mgmt-creds
+    userKey: kcadminid
+    passwordKey: kcpasswd
+    cacert:
+      secretName: iam-cacert-secret
+      key: tls.crt
+      filePath: iam/ca.crt
+    internal:
+      hostname: eric-sec-access-mgmt-http
+      adminClientName: eric-cnbase-oss-config-iam-admin-client
+      adminClientCertSecret: eric-cnbase-oss-config-iam-admin-client-cert-secret
+
+serviceMesh:
+  enabled: true
+sef:
+  enabled: true
+
+#TODO: check user
+defaultUser:
+  secretName: eric-oss-common-base-system-user-secret
+  userKey: system-user
+  passwordKey: system-user-pwd
+
+imageCredentials:
+  registry:
+    url:
+    imagePullPolicy:
+  pullSecret:
+  repoPath:
+
+replicaCount: 1
+
+images:
+  testwareImage: ${defaultDockerTag}
+
+build:
+  version: ${version}
+  name: ${name}
+
+env:
+  APP_VERSION: ""
+  BUILD_URL: ""
+  BUILD_NUMBER: ""
+  STAGING_TYPE: "APPLICATION"
+  PRODUCT: ""
+  PRODUCT_VERSION: ""
+  ENVIRONMENT: "production"
+  GAS_HOSTNAME: ""
+  EIC_HOSTNAME: ""
+  APPMGR_HOSTNAME: ""
+  SEF_STATUS: "enabled"
+  TESTSTAGE: ""
+  SYSTEM_USER: ""
+  SYSTEM_USER_PASSWORD: ""
+  GAS_USER: ""
+  GAS_PWD: ""
+  ML_ADMIN_USERNAME: ""
+  ML_ADMIN_PWD: ""
+  ML_MODEL_USERNAME: ""
+  ML_MODEL_PWD: ""
+  NAMESPACE: ""
+  TESTWARE_NAME: "eric-oss-ml-platform-app-test"
+  TEST_VERSION: ${version}
+
+  onboardingAPIs:
+    - serviceCapabilityId: machine-learning-test-1
+      apiName: single-model-service
+      status: active
+      apiVersion: v1
+      apiCategory: /APIGM/category/machine-learning-test
+      apiDefinition:
+        - operationName: machine-learning-seldon/POST
+          urlPattern: /seldon/(.*)
+          urlPatternType: uriRegex
+          method: POST
+      throttlingThreshold: 500
+      endpoints:
+        - endpointId: machine-learning-test-1
+          endpointUrl: single-model-service:8000
+          endpointTlsUrl: single-model-service:8000
+      accessControl:
+        authentication:
+          scheme: auto
+      interceptor:
+        - extractTokenInterceptor
+        - requestPartyTokenInterceptor
+      data:
+        configuration:
+          # this is used for requestPartyTokenInterceptor
+          defaultResourceServer: eo
+          # this is used for extractTokenInterceptor
+          enableTokenPropagation: true
+          tokenHeaderName: "Authorization"
+    - serviceCapabilityId: machine-learning-test-2
+      apiName: single-model-service-upgrade
+      status: active
+      apiVersion: v1
+      apiCategory: /APIGM/category/machine-learning-test
+      apiDefinition:
+        - operationName: machine-learning-seldon/POST
+          urlPattern: /seldon/(.*)
+          urlPatternType: uriRegex
+          method: POST
+      throttlingThreshold: 500
+      endpoints:
+        - endpointId: machine-learning-test-2
+          endpointUrl: single-model-service-upgrade:8000
+          endpointTlsUrl: single-model-service-upgrade:8000
+      accessControl:
+        authentication:
+          scheme: auto
+      interceptor:
+        - extractTokenInterceptor
+        - requestPartyTokenInterceptor
+      data:
+        configuration:
+          # this is used for requestPartyTokenInterceptor
+          defaultResourceServer: eo
+          # this is used for extractTokenInterceptor
+          enableTokenPropagation: true
+          tokenHeaderName: "Authorization"
+    - serviceCapabilityId: machine-learning-test-3
+      apiName: ab-model-service
+      status: active
+      apiVersion: v1
+      apiCategory: /APIGM/category/machine-learning-test
+      apiDefinition:
+        - operationName: machine-learning-seldon/POST
+          urlPattern: /seldon/(.*)
+          urlPatternType: uriRegex
+          method: POST
+      throttlingThreshold: 500
+      endpoints:
+        - endpointId: machine-learning-test-3
+          endpointUrl: ab-model-service:8000
+          endpointTlsUrl: ab-model-service:8000
+      accessControl:
+        authentication:
+          scheme: auto
+      interceptor:
+        - extractTokenInterceptor
+        - requestPartyTokenInterceptor
+      data:
+        configuration:
+          # this is used for requestPartyTokenInterceptor
+          defaultResourceServer: eo
+          # this is used for extractTokenInterceptor
+          enableTokenPropagation: true
+          tokenHeaderName: "Authorization"
+
+eric-simple-ml-demo:
+  image:
+  apiGatewayRoute:
+    credentials:
+      name: eric-oss-common-base-system-user-secret
+      userKey: system-user
+      pwdKey: system-user-pwd
+    routes:
+      - id: simplemldemo
+        url: https://gas.hart149-x2.ews.gic.ericsson.se/
+        hosts:
+          - gas.hart149-x2.ews.gic.ericsson.se
+        tag: -i
+        path: /simplemldemo
+
+  mxe:
+    modelServiceUri: https://eic.hart149-x2.ews.gic.ericsson.se/model-endpoints/ml-test-service
+    accessTokenUri: https://eic.hart149-x2.ews.gic.ericsson.se/auth/realms/master/protocol/openid-connect/token
+    credentials:
+      name: mxe-user
+      userKey: mxe-username
+      pwdKey: mxe-password
+      user:
+      pwd:

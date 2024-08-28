@@ -1,0 +1,17 @@
+productName: eric-oss-ml-platform-app-test
+productNumber: CXD 101 642
+images:
+  keycloakClient:
+    productName: "Keycloak Client"
+    productNumber: "CXA 301 122"
+    registry: "armdocker.rnd.ericsson.se"
+    repoPath: "proj-orchestration-so"
+    name: "keycloak-client"
+    tag: "1.0.0-112"
+  exposureApiManagerClient:
+    productName: "Exposure Api Manager Client"
+    productNumber: "CXU 101 1786"
+    registry: "armdocker.rnd.ericsson.se"
+    repoPath: "proj-adp-rs-sef-released"
+    name: "eric-sef-exposure-api-manager-client"
+    tag: "1.5.0-27"

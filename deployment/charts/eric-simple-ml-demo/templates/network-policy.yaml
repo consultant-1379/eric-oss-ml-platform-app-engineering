@@ -1,0 +1,18 @@
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: {{ include "eric-simple-ml-demo.name" . }}-network-policy-api-gw
+  labels:
+    app: {{ .Chart.Name }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ template "eric-simple-ml-demo.name" . }}
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: eric-eo-api-gateway
+        - podSelector:
+            matchLabels:
+              app: eric-sef-exposure-api-gateway

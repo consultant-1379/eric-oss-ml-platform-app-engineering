@@ -1,0 +1,20 @@
+global:
+  hosts:
+    eic: &eic "eic.hart149-x2.ews.gic.ericsson.se"
+    gas: &gas "gas.hart149-x2.ews.gic.ericsson.se"
+    iam: &iam "eic.hart149-x2.ews.gic.ericsson.se"
+    appmgr: &appmgr "appmgr.hart149-x2.ews.gic.ericsson.se"
+
+env:
+  GAS_HOSTNAME: *gas
+  EIC_HOSTNAME: *eic
+  APPMGR_HOSTNAME: *appmgr
+  SEF_STATUS: enabled
+  SYSTEM_USER: system-user
+  SYSTEM_USER_PASSWORD: Ericsson123!
+  BUILD_URL: build_url
+  ENVIRONMENT: development
+  NAMESPACE: hart149-eric-eic-2
+
+images:
+  testwareImage: armdocker.rnd.ericsson.se/proj-eric-oss-dev-test/eric-oss-ml-platform-app-test:1.0.106-eandsol

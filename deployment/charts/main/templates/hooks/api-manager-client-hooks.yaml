@@ -1,0 +1,1 @@
+{{- include "eric-sef-exposure-api-manager-client.hooks" . }}

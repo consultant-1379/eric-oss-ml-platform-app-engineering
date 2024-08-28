@@ -1,0 +1,77 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "eric-oss-ml-platform-app-test.name" . }}-rbac-configuration-configmap
+  labels: {{- include "eric-oss-ml-platform-app-test.labels" . | nindent 4 }}
+data:
+  rbac-configuration.json: |
+    {
+        "roles": [
+            {
+                "name": "MachineLearningTest_Application_Administrator",
+                "attributes": {}
+            }
+        ],
+        "authorization": {
+            "resources": [
+                {
+                    "name": "MachineLearningTest_Endpoints",
+                    "type": "urn:eo:resources:machine-learning-test",
+                    "ownerManagedAccess": false,
+                    "attributes": {},
+                    "uris": [
+                      "/model-endpoints/single-model-service",
+                      "/model-endpoints/single-model-service-upgrade",
+                      "/model-endpoints/ab-model-service",
+                      "/seldon/{{- .Release.Namespace -}}/single-model-service/**",
+                      "/seldon/{{- .Release.Namespace -}}/single-model-service-upgrade/**",
+                      "/seldon/{{- .Release.Namespace -}}/ab-model-service/**",
+                      "/single-model-service/v1/seldon/{{- .Release.Namespace -}}/single-model-service/**",
+                      "/single-model-service-upgrade/v1/seldon/{{- .Release.Namespace -}}/single-model-service-upgrade/**",
+                      "/ab-model-service/v1/seldon/{{- .Release.Namespace -}}/ab-model-service/**"
+                    ],
+                    "scopes": [{
+                            "name": "PATCH"
+                        }, {
+                            "name": "DELETE"
+                        }, {
+                            "name": "GET"
+                        }, {
+                            "name": "POST"
+                        }, {
+                            "name": "PUT"
+                        }
+                    ]
+                }
+            ],
+            "policies": [
+                {
+                    "name": "Is MachineLearningTest Admin User",
+                    "type": "role",
+                    "logic": "POSITIVE",
+                    "decisionStrategy": "UNANIMOUS",
+                    "config": {
+                        "roles": "[{\"id\":\"MachineLearningTest_Application_Administrator\",\"required\":false}]"
+                    }
+                },
+                {
+                    "name": "MachineLearningTest Admin Users",
+                    "type": "scope",
+                    "logic": "POSITIVE",
+                    "decisionStrategy": "AFFIRMATIVE",
+                    "config": {
+                        "resources": "[\"MachineLearningTest_Endpoints\"]",
+                        "scopes": "[\"GET\",\"PUT\",\"POST\",\"DELETE\",\"PATCH\"]",
+                        "applyPolicies": "[\"Is MachineLearningTest Admin User\"]"
+                    }
+                }
+            ],
+            "scopes": [
+                { "name": "GET" },
+                { "name": "POST" },
+                { "name": "DELETE" },
+                { "name": "PUT" },
+                { "name": "PATCH" }
+            ]
+        }
+    }

@@ -1,0 +1,21 @@
+{
+    "id": "",
+    "predicates": [
+        {
+            "name": "Path",
+            "args": {
+                "_genkey_0": ""
+            }
+        },
+        {
+            "name": "Host",
+            "args": {
+                "_genkey_0": ""
+            }
+        }
+    ],
+    "filters": [],
+    "uri": "",
+    "metadata": {},
+    "order": 0
+}

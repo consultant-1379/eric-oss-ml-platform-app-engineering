@@ -1,0 +1,3 @@
+{{- if index .Values "sef" "enabled" }}
+  {{- include "eric-sef-exposure-api-manager-client.hooks" . }}
+{{- end }}

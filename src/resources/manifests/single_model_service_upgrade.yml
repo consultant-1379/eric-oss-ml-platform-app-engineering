@@ -1,0 +1,36 @@
+apiVersion: machinelearning.seldon.io/v1
+kind: SeldonDeployment
+metadata:
+  labels:
+    app: seldon
+  name: single-model-service-upgrade
+spec:
+  annotations:
+    seldon.io/istio-gateway: mesh
+    seldon.io/istio-host: single-model-service-upgrade
+  predictors:
+    - name: main
+      annotations:
+        predictor_version: v1
+        seldon.io/svc-name: single-model-service-upgrade
+      replicas: 1
+      graph:
+        name: model
+        type: MODEL
+        endpoint:
+          type: REST
+      componentSpecs:
+        - spec:
+            containers:
+              - image: sample.model.2.test:2.2.0
+                name: model
+                imagePullPolicy: Always
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  privileged: false
+                  runAsNonRoot: true
+                  capabilities:
+                    drop:
+                      - all
+      labels:
+        sidecar.istio.io/inject: "true"

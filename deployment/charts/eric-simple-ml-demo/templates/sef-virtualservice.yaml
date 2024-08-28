@@ -1,0 +1,27 @@
+{{- if .Values.sef.enabled -}}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ template "eric-simple-ml-demo.name" . }}-sef-virtualservice
+  labels:
+    {{- include "eric-simple-ml-demo.labels" .| nindent 4 }}
+spec:
+  exportTo:
+    - "."
+  gateways:
+    - eric-oss-common-base-common-gateway
+  hosts:
+    - {{ required "A valid .Values.global.hosts.eic required" .Values.global.hosts.eic }}
+  http:
+    - match:
+        - uri:
+            prefix: /simplemldemo
+      name: simplemldemo
+      rewrite:
+        uri: /hub/simplemldemo/v1/simplemldemo
+      route:
+        - destination:
+            host: eric-sef-exposure-api-gateway
+            port:
+              number: 8080
+{{- end }}

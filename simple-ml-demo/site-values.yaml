@@ -1,0 +1,21 @@
+nameOverride: ""
+fullnameOverride: ""
+
+apiGatewayRoute:
+  routes:
+    - id: simplemldemo
+      url: https://pf.oss.hall020.rnd.gic.ericsson.se/
+      hosts:
+        - pf.oss.hall020.rnd.gic.ericsson.se
+      tag: -i
+      path: /simplemldemo
+
+mxe:
+  modelServiceUri: https://mxe.hall020.rnd.gic.ericsson.se/model-endpoints/simpledemotest
+  accessTokenUri: https://mxe.hall020.rnd.gic.ericsson.se/auth/realms/mxe/protocol/openid-connect/token
+  credentials:
+    name: mxe-user
+    userKey: mxe-username
+    pwdKey: mxe-password
+    user: mxe-user
+    pwd: password

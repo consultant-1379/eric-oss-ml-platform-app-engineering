@@ -1,0 +1,155 @@
+# Default values for eric-simple-ml-demo.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+global:
+  hosts:
+    eic: eic.hart149-x2.ews.gic.ericsson.se
+    gas: gas.hart149-x2.ews.gic.ericsson.se
+    iam: eic.hart149-x2.ews.gic.ericsson.se
+  registry:
+    url: armdocker.rnd.ericsson.se
+    imagePullPolicy: IfNotPresent
+  iam:
+    clientId: eo
+    adminSecret: eric-sec-access-mgmt-creds
+    userKey: kcadminid
+    passwordKey: kcpasswd
+  security:
+    tls:
+      enabled: true
+  serviceMesh:
+    enabled: true
+
+productInfo:
+  # R-State of the product. R State should match helm chart version (3.1.0 -> R2A)
+  # To automate it when packaging the helm chart rstate can be generated
+  # and below value replaced with correct R-Statei by e.g. Bob
+  rstate: RSTATE
+
+iam:
+  cacert:
+    secretName: iam-cacert-secret
+    key: tls.crt
+    filePath: iam/ca.crt
+  clientSecretName: eric-cncs-oss-config-iam-client-secret
+
+imageCredentials:
+  repoPath:
+  pullPolicy: IfNotPresent
+  registry:
+    url:
+  pullSecret: k8s-registry-secret
+  keycloakClient:
+    registry:
+      url:
+      imagePullPolicy: IfNotPresent
+    repoPath:
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+replicaCount: 1
+
+nameOverride: ""
+fullnameOverride: ""
+
+resources:
+  simpleMlApp:
+    limits:
+      cpu: "200m"
+      memory: "400Mi"
+    requests:
+      cpu: "2m"
+      memory: "4Mi"
+
+apiGatewayRoute:
+  credentials:
+    name: eric-oss-common-base-system-user-secret
+    userKey: system-user
+    pwdKey: system-user-pwd
+  routes:
+    - id: simplemldemo
+      url: https://gas.hart149-x2.ews.gic.ericsson.se/
+      hosts:
+        - gas.hart149-x2.ews.gic.ericsson.se
+      tag: -i
+      path: /simplemldemo
+
+onboardingAPIs:
+  - serviceCapabilityId: simplemldemo
+    apiName: simplemldemo
+    status: active
+    apiVersion: v1
+    apiCategory: /APIGM/category/simplemldemo
+    apiDefinition:
+      - operationName: simpledemo/GET
+        urlPattern: /simplemldemo(.*)
+        urlPatternType: uriRegex
+        method: GET
+    throttlingThreshold: 500
+    endpoints:
+      - endpointId: simplemldemo
+        endpointUrl: eric-simple-ml-demo:8050
+        endpointTlsUrl: eric-simple-ml-demo:8050
+    accessControl:
+      authentication:
+        scheme: auto
+    interceptor:
+      - extractTokenInterceptor
+      - requestPartyTokenInterceptor
+    data:
+      configuration:
+        # this is used for requestPartyTokenInterceptor
+        defaultResourceServer: eo
+        # this is used for extractTokenInterceptor
+        enableTokenPropagation: true
+        tokenHeaderName: "Authorization"
+  - serviceCapabilityId: ml-test-service
+    apiName: ml-test-service
+    status: active
+    apiVersion: v1
+    apiCategory: /APIGM/category/simplemldemo
+    apiDefinition:
+      - operationName: ml-test-service/POST
+        urlPattern: /seldon/(.*)/ml-test-service(.*)
+        urlPatternType: uriRegex
+        method: POST
+    throttlingThreshold: 500
+    endpoints:
+      - endpointId: ml-test-service
+        endpointUrl: ml-test-service:8000
+        endpointTlsUrl: ml-test-service:8000
+    accessControl:
+      authentication:
+        scheme: auto
+    interceptor:
+      - extractTokenInterceptor
+      - requestPartyTokenInterceptor
+    data:
+      configuration:
+        # this is used for requestPartyTokenInterceptor
+        defaultResourceServer: eo
+        # this is used for extractTokenInterceptor
+        enableTokenPropagation: true
+        tokenHeaderName: "Authorization"
+
+mxe:
+  modelServiceUri: https://eic.hart149-x2.ews.gic.ericsson.se/model-endpoints/ml-test-service
+  accessTokenUri: https://eic.hart149-x2.ews.gic.ericsson.se/auth/realms/master/protocol/openid-connect/token
+  credentials:
+    name: mxe-user
+    userKey: mxe-username
+    pwdKey: mxe-password
+    user:
+    pwd:
+
+sef:
+  enabled: true
+serviceMesh:
+  enabled: true
+eric-sef-exposure-api-manager-client:
+  exposureApiManagerClient:
+    config: {}

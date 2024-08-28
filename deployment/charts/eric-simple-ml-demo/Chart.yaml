@@ -1,0 +1,13 @@
+apiVersion: v2
+appVersion: 2.0.0
+description: Simple ML Demo App
+type: application
+name: eric-simple-ml-demo
+version: ${version}
+dependencies:
+  - name: eric-sef-exposure-api-manager-client
+    import-values:
+      - child: exposureApiManagerClient.config
+        parent: global.exposureApiManagerClient.config
+    repository: https://arm.sero.gic.ericsson.se/artifactory/proj-adp-eric-sef-exposure-api-manager-released-helm/
+    version: 1.5.0+27

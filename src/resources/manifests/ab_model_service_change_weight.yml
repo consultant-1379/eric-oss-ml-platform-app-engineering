@@ -1,0 +1,42 @@
+apiVersion: machinelearning.seldon.io/v1
+kind: SeldonDeployment
+metadata:
+  labels:
+    app: seldon
+  name: ab-model-service
+spec:
+  annotations:
+    seldon.io/istio-gateway: mesh
+    seldon.io/istio-host: ab-model-service
+  predictors:
+    - name: main
+      annotations:
+        predictor_version: v1
+        seldon.io/svc-name: ab-model-service
+      replicas: 1
+      graph:
+        name: ab-test
+        implementation: RANDOM_ABTEST
+        parameters:
+          - name: ratioA
+            value: "0.8"
+            type: float
+        endpoint: {}
+        children:
+          - name: model-1
+            endpoint:
+              type: REST
+            type: MODEL
+          - name: model-2
+            endpoint:
+              type: REST
+            type: MODEL
+      componentSpecs:
+        - spec:
+            containers:
+              - image: sample.model.1.test:1.1.0
+                name: model-1
+        - spec:
+            containers:
+              - image: sample.model.2.test:2.2.0
+                name: model-2
